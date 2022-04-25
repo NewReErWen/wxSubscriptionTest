@@ -12,6 +12,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.dom4j.DocumentException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,6 +35,12 @@ import net.sf.json.JSONObject;
 @RestController
 public class WxSubscriptionInfosyssController {
 	private final String TOKEN = "newre";
+
+	final Logger logger;
+
+	public WxSubscriptionInfosyssController() {
+		this.logger = LoggerFactory.getLogger(CounterController.class);
+	}
 
 	/**
 	 * 在微信控制台设置的请求地址，此处用于接收微信公众号的服务器发送回来的消息（包括不限于连接测试、用户关注通知、用户发送消息等）
@@ -67,12 +75,15 @@ public class WxSubscriptionInfosyssController {
 
 	@PostMapping(value = "/wx/receiveMessage")
 	public void sendMessage(HttpServletRequest request, HttpServletResponse response) throws Exception {
+
+		logger.info("/wx/receiveMessage post request, begin");
 		request.setCharacterEncoding("UTF-8");
 		response.setCharacterEncoding("UTF-8");
 		PrintWriter out = response.getWriter();
 		try {
 			// 将request请求，传到Message工具类的转换方法中，返回接收到的Map对象
 			Map<String, String> recieveMap = XmlParseUtil.xmlToMap(request, request.getParameter("inputData"));
+			logger.info("/wx/receiveMessage post request, recieveMap: {}", recieveMap);
 			// 从集合中，获取XML各个节点的内容
 			// 微信开发者的微信号
 			String toUserName = recieveMap.get("ToUserName");
@@ -104,6 +115,7 @@ public class WxSubscriptionInfosyssController {
 			// 不回复，回复统一使用客服接口
 			out.print("");
 			if (msgType.equals("text")) {// 判断消息类型是否是文本消息(text)，除text外，还有其他消息类型（例如图片、语音等）
+				logger.info("/wx/receiveMessage post request, 是文本");
 				businessMessageContent.put("replyType", "text");
 				businessMessageContent.put("content", content);
 				systemMessageList = this.replyContent(businessMessageContent, "reply", 1, 5);
@@ -118,6 +130,7 @@ public class WxSubscriptionInfosyssController {
 					// 取消关注x
 				}
 			}
+			logger.info("/wx/receiveMessage post request, systemMessageList: {}", systemMessageList);
 			if (systemMessageList != null && !systemMessageList.isEmpty()) {
 				if (systemMessageList.size() == 1) {
 					// 匹配到的问题作为回复
