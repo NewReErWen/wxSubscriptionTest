@@ -2,6 +2,7 @@ package com.tencent.wxcloudrun.controller;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +114,15 @@ public class WxSubscriptionInfosyssController {
 			List<SystemMessage> systemMessageList = null;
 			JSONObject businessMessageContent = new JSONObject();
 			// 不回复，回复统一使用客服接口
-			out.print("");
+			Map<String, Object> message = new HashMap<String, Object>();
+			message.put("MsgType", "text");
+			message.put("Content",
+					"您好，" + fromUserName + "\n我是：" + toUserName + "\n您发送的消息类型为：" + msgType + "\n您发送的时间为"
+							+ createTime + "\n我回复的时间为：" + message.get("CreateTime") + "\n您发送的内容是：" + content);
+			// 转为XML字符串
+			String str = XmlParseUtil.mapToXml(message, true);
+			logger.info(str);
+			out.print(str);
 			if (msgType.equals("text")) {// 判断消息类型是否是文本消息(text)，除text外，还有其他消息类型（例如图片、语音等）
 				logger.info("/wx/receiveMessage post request, 是文本");
 				businessMessageContent.put("replyType", "text");
