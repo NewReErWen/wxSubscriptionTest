@@ -1,9 +1,12 @@
 package com.tencent.wxcloudrun.controller;
 
 import java.io.PrintWriter;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -60,6 +63,8 @@ public class WxSubscriptionInfosyssController {
 		out.print("wrong argument");
 	}
 
+	private WxSubscriptionMsgService wxMsgService = new WxSubscriptionMsgService();
+
 	@PostMapping(value = "/wx/receiveMessage")
 	public void sendMessage(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		request.setCharacterEncoding("UTF-8");
@@ -69,13 +74,21 @@ public class WxSubscriptionInfosyssController {
 			// 将request请求，传到Message工具类的转换方法中，返回接收到的Map对象
 			Map<String, String> recieveMap = XmlParseUtil.xmlToMap(request, request.getParameter("inputData"));
 			// 从集合中，获取XML各个节点的内容
+			// 微信开发者的微信号
 			String toUserName = recieveMap.get("ToUserName");
+			// openId
 			String fromUserName = recieveMap.get("FromUserName");
 			String createTime = recieveMap.get("CreateTime");
 			String msgType = recieveMap.get("MsgType");
+			// 发送消息的内容
 			String content = recieveMap.get("Content");
 			String msgId = recieveMap.get("MsgId");
-			System.out.println(msgId + ": " + recieveMap);
+
+			// 获取发送人信息
+			User sendUser = wxMsgService.findUserByOpenId(fromUserName);
+			// 获取接收人（即公众号开发者）信息
+			User receiveUser = new User(UUID.randomUUID().toString(), "开发者", toUserName);
+
 			// TODO 可采用状态模式，或以子类取代类型码
 			// MsgService msgService = MsgService.create(recieveMap);
 			// 不同对象处理的事件不同，此处可能包含数据库查询等业务
@@ -86,180 +99,81 @@ public class WxSubscriptionInfosyssController {
 			// msgService.setToUserName("");
 			// more...
 			// msgService.toXml()
+			List<SystemMessage> systemMessageList = null;
+			JSONObject businessMessageContent = new JSONObject();
+			// 不回复，回复统一使用客服接口
+			out.print("");
 			if (msgType.equals("text")) {// 判断消息类型是否是文本消息(text)，除text外，还有其他消息类型（例如图片、语音等）
-				// 文本消息
-				Map<String, Object> message = new HashMap<String, Object>();
-				// 原来【接收消息用户】变为回复时【发送消息用户】
-				message.put("ToUserName", fromUserName);
-				message.put("FromUserName", toUserName);
-				message.put("CreateTime", String.valueOf(new Date().getTime()));
-				if (content.equals("推送图文")) {
-					System.out.println("推送图文中");
-					JSONObject paramObject = new JSONObject();
-					paramObject.put("type", "news");
-					paramObject.put("offset", 0);
-					paramObject.put("count", 1);
-					JSONObject articles = WXSubscriptionRequestUtil.batchgetMaterial(paramObject).getJSONArray("item")
-							.getJSONObject(0).getJSONObject("content").getJSONArray("news_item").getJSONObject(0);
-					message.put("MsgType", "news");
-					message.put("ArticleCount", 1);
-					Map<String, Object> articlesMap = new HashMap<String, Object>();
-					Map<String, Object> itemMap = new HashMap<String, Object>();
-					itemMap.put("Title", articles.get("title"));
-					itemMap.put("Description", articles.get("digest"));
-					itemMap.put("PicUrl", articles.get("thumb_url"));
-					itemMap.put("Url", articles.get("url"));
-					articlesMap.put("item", itemMap);
-					message.put("Articles", articlesMap);
-				} else if (content.equals("推送视频")) {
-					// TODO 失败
-					System.out.println("推送视频中");
-					message.put("MsgType", "video");
-					JSONObject paramObject = new JSONObject();
-					paramObject.put("type", "video");
-					paramObject.put("offset", 0);
-					paramObject.put("count", 1);
-					JSONObject video = WXSubscriptionRequestUtil.batchgetMaterial(paramObject).getJSONArray("item")
-							.getJSONObject(0);
-					Map<String, Object> imageMap = new HashMap<String, Object>();
-					imageMap.put("MediaId", video.getString("media_id"));
-					imageMap.put("Title", video.getString("name"));
-					imageMap.put("Description", video.getString("description"));
-					message.put("Video", imageMap);
-				} else if (content.equals("推送音频")) {
-					System.out.println("推送音频中");
-					message.put("MsgType", "music");
-					JSONObject paramObject = new JSONObject();
-					paramObject.put("type", "voice");
-					paramObject.put("offset", 0);
-					paramObject.put("count", 1);
-					JSONObject music = WXSubscriptionRequestUtil.batchgetMaterial(paramObject).getJSONArray("item")
-							.getJSONObject(0);
-					Map<String, Object> imageMap = new HashMap<String, Object>();
-					imageMap.put("ThumbMediaId", music.getString("media_id"));
-					imageMap.put("Title", music.getString("name"));
-					message.put("Music", imageMap);
-				} else if (content.equals("1")) {
-					System.out.println("---------");
-					JSONObject messageObject = new JSONObject();
-					// 拼装json对象
-					messageObject.put("touser", fromUserName);
-					messageObject.put("msgtype", "news");
-					JSONObject newsObject = new JSONObject();
-					JSONArray articles = new JSONArray();
-					JSONObject article = new JSONObject();
-					JSONObject paramObject = new JSONObject();
-					paramObject.put("type", "news");
-					paramObject.put("offset", 0);
-					paramObject.put("count", 1);
-					JSONObject articleObject = WXSubscriptionRequestUtil.batchgetMaterial(paramObject)
-							.getJSONArray("item").getJSONObject(0).getJSONObject("content").getJSONArray("news_item")
-							.getJSONObject(0);
-					article.put("title", articleObject.get("title"));
-					article.put("description", articleObject.get("digest"));
-					article.put("url", articleObject.get("url"));
-					article.put("picurl", articleObject.get("thumb_url"));
-					articles.add(article);
-					newsObject.put("articles", articles);
-					messageObject.put("news", newsObject);
-					// 调用已封装的客服发送消息请求方法
-					System.out.println(messageObject);
-					WXSubscriptionRequestUtil.customSendMessage(messageObject);
-				} else {
-					message.put("MsgType", "text");
-					message.put("Content",
-							"您好，" + fromUserName + "\n我是：" + toUserName + "\n您发送的消息类型为：" + msgType + "\n您发送的时间为"
-									+ createTime + "\n我回复的时间为：" + message.get("CreateTime") + "\n您发送的内容是：" + content);
-				}
-				// 转为XML字符串
-				String str = XmlParseUtil.mapToXml(message, true);
-				System.out.println(str);
-				out.print(str);
+				businessMessageContent.put("replyType", "text");
+				businessMessageContent.put("content", content);
+				systemMessageList = this.replyContent(businessMessageContent, "reply", 1, 5);
 			} else if (msgType.equals("image")) {
-				// 图片消息
-				Map<String, Object> message = new HashMap<String, Object>();
-				// 原来【接收消息用户】变为回复时【发送消息用户】
-				message.put("ToUserName", fromUserName);
-				message.put("FromUserName", toUserName);
-				message.put("CreateTime", String.valueOf(new Date().getTime()));
-				message.put("MsgType", "image");
-				Map<String, Object> imageMap = new HashMap<String, Object>();
-				imageMap.put("MediaId", recieveMap.get("MediaId"));
-				message.put("Image", imageMap);
-				// 转为XML字符串
-				String str = XmlParseUtil.mapToXml(message, true);
-				out.print(str);
 			} else if (msgType.equals("voice")) {
-				// 语音消息
-				Map<String, Object> message = new HashMap<String, Object>();
-				// 原来【接收消息用户】变为回复时【发送消息用户】
-				message.put("ToUserName", fromUserName);
-				message.put("FromUserName", toUserName);
-				message.put("CreateTime", String.valueOf(new Date().getTime()));
-				message.put("MsgType", "voice");
-				Map<String, Object> imageMap = new HashMap<String, Object>();
-				imageMap.put("MediaId", recieveMap.get("MediaId"));
-				message.put("Voice", imageMap);
-				// 转为XML字符串
-				String str = XmlParseUtil.mapToXml(message, true);
-				out.print(str);
 			} else if (msgType.equals("video")) {
-				out.print("");
 			} else if (msgType.equals("event")) {
 				String event = recieveMap.get("Event");
 				if (event.equals("subscribe") || event.equals("SCAN")) {
-					// 关注
-					out.print("");
-
-					String param = recieveMap.get("EventKey");
-					JSONObject messageObject = new JSONObject(); // 拼装json对象
-					messageObject.put("touser", fromUserName);
-					messageObject.put("msgtype", "text");
-					JSONObject textObject = new JSONObject();
-					textObject.put("content", "二维码携带的参数值为：" + param);
-					messageObject.put("text", textObject);
-					WXSubscriptionRequestUtil.customSendMessage(messageObject);
-
-					// 图文消息发送
-					messageObject = new JSONObject();
-					messageObject.put("touser", fromUserName);
-					messageObject.put("msgtype", "news");
-					JSONObject newsObject = new JSONObject();
-					JSONArray articles = new JSONArray();
-					JSONObject article = new JSONObject();
-					JSONObject paramObject = new JSONObject();
-					paramObject.put("type", "news");
-					paramObject.put("offset", 0);
-					paramObject.put("count", 1);
-					JSONObject articleObject = WXSubscriptionRequestUtil.batchgetMaterial(paramObject)
-							.getJSONArray("item").getJSONObject(0).getJSONObject("content").getJSONArray("news_item")
-							.getJSONObject(0);
-					article.put("title", articleObject.get("title"));
-					article.put("description", articleObject.get("digest"));
-					article.put("url", articleObject.get("url"));
-					article.put("picurl", articleObject.get("thumb_url"));
-					articles.add(article);
-					newsObject.put("articles", articles);
-					messageObject.put("news", newsObject);
-					// 调用已封装的客服发送消息请求方法
-					System.out.println(messageObject);
-					WXSubscriptionRequestUtil.customSendMessage(messageObject);
-
-					// 视频发送
-					JSONObject video = WXSubscriptionRequestUtil.batchgetMaterial("video", 0, 1).getJSONArray("item")
-							.getJSONObject(0);
-					messageObject = new JSONObject(); // 拼装json对象
-					messageObject.put("touser", fromUserName);
-					messageObject.put("msgtype", "video");
-					JSONObject videoObject = new JSONObject();
-					videoObject.put("media_id", video.getString("media_id"));
-					videoObject.put("thumb_media_id", video.getString("media_id"));
-					videoObject.put("title", video.getString("name"));
-					videoObject.put("description", video.getString("description"));
-					messageObject.put("video", videoObject);
-					WXSubscriptionRequestUtil.customSendMessage(messageObject);
+					systemMessageList = this.replyContent(businessMessageContent, "welcome", 1, 5);
 				} else if (event.equals("unsubscribe")) {
 					// 取消关注x
+				}
+			}
+			if (systemMessageList != null && !systemMessageList.isEmpty()) {
+				if (systemMessageList.size() == 1) {
+					// 匹配到的问题作为回复
+					SystemMessage systemMessage = systemMessageList.get(0);
+					for (SystemReply systemReply : systemMessage.getSystemReplys()) {
+						JSONObject messageObject = new JSONObject();
+						JSONObject data = new JSONObject();
+						// 拼装json对象
+						messageObject.put("touser", fromUserName);
+						if (systemReply.getReplyType().equals("text")) {
+							messageObject.put("msgtype", "text");
+							data.put("content", systemReply.getContent());
+							messageObject.put("text", data);
+						} else if (systemReply.getReplyType().equals("image")) {
+							// TODO 临时素材添加并获取
+							String media_id = "";
+							messageObject.put("msgtype", "image");
+							data.put("media_id", media_id);
+							messageObject.put("video", data);
+						} else if (systemReply.getReplyType().equals("voice")) {
+							// TODO 临时素材添加并获取
+							String media_id = "";
+							messageObject.put("msgtype", "voice");
+							data.put("media_id", media_id);
+							messageObject.put("video", data);
+						} else if (systemReply.getReplyType().equals("video")) {
+							// TODO 临时素材添加并获取media_id
+							String media_id = "";
+							messageObject.put("msgtype", "video");
+							data.put("media_id", media_id);
+							messageObject.put("video", data);
+						} else if (systemReply.getReplyType().equals("news")) {
+							// 图文内容，目前没有
+							JSONObject newsObject = new JSONObject();
+							JSONArray articles = new JSONArray();
+							JSONObject article = new JSONObject();
+							JSONObject paramObject = new JSONObject();
+							paramObject.put("type", "news");
+							paramObject.put("offset", 0);
+							paramObject.put("count", 1);
+							JSONObject articleObject = WXSubscriptionRequestUtil.batchgetMaterial(paramObject)
+									.getJSONArray("item").getJSONObject(0).getJSONObject("content")
+									.getJSONArray("news_item").getJSONObject(0);
+							article.put("title", articleObject.get("title"));
+							article.put("description", articleObject.get("digest"));
+							article.put("url", articleObject.get("url"));
+							article.put("picurl", articleObject.get("thumb_url"));
+							articles.add(article);
+							newsObject.put("articles", articles);
+							messageObject.put("news", newsObject);
+						}
+						// 调用已封装的客服发送消息请求方法
+						WXSubscriptionRequestUtil.customSendMessage(messageObject);
+					}
+				} else {
+					// 推荐问题列表
 				}
 			}
 		} catch (DocumentException e) {
@@ -299,5 +213,103 @@ public class WxSubscriptionInfosyssController {
 				return false;
 		}
 		return true;
+	}
+
+	public List<SystemMessage> replyContent(JSONObject businessMessageContent, String operateType, Integer pageNum,
+			Integer pageRowNum) {
+		// 系统问题列表
+		List<SystemMessage> systemMessageList = new ArrayList<SystemMessage>();
+		if (operateType != null && !operateType.equals("")) {
+			if (operateType.equals("welcome") || operateType.equals("reply") || operateType.equals("unifiedReply")) {
+				// 回复时机（欢迎语、回复语、统一回复、其他）
+				Parameter messageTypeParameter = null;
+				List<Parameter> messageTypeList = new ArrayList<Parameter>();
+				if (operateType.equals("welcome")) {
+					// 回复时机-欢迎语
+					// messageTypeParameter =
+					// findParameterByCode(welcomeMessageTypeCode);
+					messageTypeParameter = new Parameter();
+					messageTypeList.add(messageTypeParameter);
+					// systemMessageList = systemMessageService
+					// .findSystemMessageListByStateListMessageTypeListOrganizationContentLikeContent(stateList,
+					// messageTypeList, organization, null, null);
+					SystemMessage systemMessage1 = new SystemMessage();
+					systemMessageList.add(systemMessage1);
+				} else if (operateType.equals("unifiedReply")) {
+					// 回复时机-欢迎语
+					// messageTypeParameter =
+					// parameterService.findParameterByCode(unifiedReplyMessageTypeCode);
+					messageTypeParameter = new Parameter();
+					messageTypeList.add(messageTypeParameter);
+					// systemMessageList = systemMessageService
+					// .findSystemMessageListByStateListMessageTypeListOrganizationContentLikeContent(stateList,
+					// messageTypeList, organization, null, null);
+					SystemMessage systemMessage1 = new SystemMessage();
+					systemMessageList.add(systemMessage1);
+				} else if (operateType.equals("reply")) {
+					String keyword = null;
+					// if (businessMessageById != null) {
+					if (true) {
+						// 用户输入内容
+						if (businessMessageContent.getString("replyType") != null
+								&& businessMessageContent.getString("replyType").equals("text")) {
+							// 回复时机-回复语
+							keyword = businessMessageContent.getString("content");
+							// messageTypeParameter =
+							// parameterService.findParameterByCode(replyMessageTypeCode);
+							messageTypeParameter = new Parameter();
+							messageTypeList.add(messageTypeParameter);
+							// systemMessageList = systemMessageService
+							// .findSystemMessageListByStateListMessageTypeListOrganizationContentLikeContent(
+							// stateList, messageTypeList, organization,
+							// keyword, null);
+							SystemMessage systemMessage1 = new SystemMessage();
+							systemMessageList.add(systemMessage1);
+							if (systemMessageList == null || systemMessageList.size() != 1) {
+								// 回复内容不存在或结果不唯一，再次进行模糊查询
+								if (pageNum == null || pageNum.equals(""))// 页数
+									pageNum = 1;
+								if (pageRowNum == null || pageRowNum.equals("")) // 每页条数
+									pageRowNum = 5;
+								// Object[] objectArray = systemMessageService
+								// .findObjectByStateListProductListOrganizationContentPageNumPageRowNum(stateList,
+								// messageTypeList, organization, keyword,
+								// pageNum, pageRowNum);
+								Object[] objectArray = new Object[2];
+								objectArray[0] = 2;
+								objectArray[1] = new ArrayList<SystemMessage>();
+								if (objectArray != null) {
+									// 0总条数, 1系统问题列表
+									if (objectArray[1] != null)
+										systemMessageList = (List<SystemMessage>) objectArray[1];
+								}
+							}
+						}
+						// 未找到匹配的回复语时，回复其他
+						if (systemMessageList == null || systemMessageList.isEmpty()) {
+							// 回复时机-其他
+							messageTypeList.clear();
+							// messageTypeParameter =
+							// parameterService.findParameterByCode(otherMessageTypeCode);
+							messageTypeParameter = new Parameter();
+							messageTypeList.add(messageTypeParameter);
+							// systemMessageList = systemMessageService
+							// .findSystemMessageListByStateListMessageTypeListOrganizationContentLikeContent(
+							// stateList, messageTypeList, organization, null,
+							// null);
+							SystemMessage systemMessage1 = new SystemMessage();
+							Set<SystemReply> systemReplys = new HashSet<SystemReply>();
+							SystemReply r1 = new SystemReply();
+							r1.setContent("测试数据");
+							r1.setReplyType("text");
+							systemReplys.add(r1);
+							systemMessage1.setSystemReplys(systemReplys);
+							systemMessageList.add(systemMessage1);
+						}
+					}
+				}
+			}
+		}
+		return systemMessageList;
 	}
 }
