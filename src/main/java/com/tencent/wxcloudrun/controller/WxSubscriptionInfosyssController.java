@@ -296,6 +296,12 @@ public class WxSubscriptionInfosyssController {
 							// stateList, messageTypeList, organization,
 							// keyword, null);
 							SystemMessage systemMessage1 = new SystemMessage();
+							Set<SystemReply> systemReplys = new HashSet<SystemReply>();
+							SystemReply r1 = new SystemReply();
+							r1.setContent("测试数据");
+							r1.setReplyType("text");
+							systemReplys.add(r1);
+							systemMessage1.setSystemReplys(systemReplys);
 							systemMessageList.add(systemMessage1);
 							if (systemMessageList == null || systemMessageList.size() != 1) {
 								// 回复内容不存在或结果不唯一，再次进行模糊查询
