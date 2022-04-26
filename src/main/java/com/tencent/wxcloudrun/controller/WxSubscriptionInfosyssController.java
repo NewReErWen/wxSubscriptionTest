@@ -145,18 +145,23 @@ public class WxSubscriptionInfosyssController {
 			}
 			logger.info("/wx/receiveMessage post request, systemMessageList: {}", systemMessageList);
 			if (systemMessageList != null && !systemMessageList.isEmpty()) {
+				logger.info("000");
 				if (systemMessageList.size() == 1) {
 					// 匹配到的问题作为回复
 					SystemMessage systemMessage = systemMessageList.get(0);
+					logger.info("111");
 					for (SystemReply systemReply : systemMessage.getSystemReplys()) {
+						logger.info("222");
 						JSONObject messageObject = new JSONObject();
 						JSONObject data = new JSONObject();
 						// 拼装json对象
 						messageObject.put("touser", fromUserName);
 						if (systemReply.getReplyType().equals("text")) {
+							logger.info("333");
 							messageObject.put("msgtype", "text");
 							data.put("content", systemReply.getContent());
 							messageObject.put("text", data);
+							logger.info("444");
 						} else if (systemReply.getReplyType().equals("image")) {
 							// TODO 临时素材添加并获取
 							String media_id = "";
