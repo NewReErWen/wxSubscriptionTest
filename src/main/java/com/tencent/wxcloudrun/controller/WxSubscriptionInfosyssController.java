@@ -126,7 +126,7 @@ public class WxSubscriptionInfosyssController {
 			// 转为XML字符串
 			String str = XmlParseUtil.mapToXml(message, true);
 			logger.info(str);
-			out.print(str);
+			out.print("");
 			if (msgType.equals("text")) {// 判断消息类型是否是文本消息(text)，除text外，还有其他消息类型（例如图片、语音等）
 				logger.info("/wx/receiveMessage post request, 是文本");
 				businessMessageContent.put("replyType", "text");
@@ -304,6 +304,11 @@ public class WxSubscriptionInfosyssController {
 							r1.setContent("测试数据");
 							r1.setReplyType("text");
 							systemReplys.add(r1);
+							SystemReply r2 = new SystemReply();
+							r2.setContent("测试数据");
+							r2.setReplyType("text");
+							systemReplys.add(r1);
+							systemReplys.add(r2);
 							systemMessage1.setSystemReplys(systemReplys);
 							systemMessageList.add(systemMessage1);
 							logger.info("???444");

@@ -30,9 +30,9 @@ public class WXSubscriptionRequestUtil {
 			return accessToken;
 		try {
 			StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.ACCESS_TOKEN_URL);
-			path.append("?grant_type=" + URLEncoder.encode(WXConstants.ACCESS_TOKEN_GRANT_TYPE, "UTF-8"));
-			path.append("&appid=" + URLEncoder.encode(WXConfig.APPID, "UTF-8"));
-			path.append("&secret=" + URLEncoder.encode(WXConfig.SECRET, "UTF-8"));
+			path.append("?grant_type=" + WXConstants.ACCESS_TOKEN_GRANT_TYPE);
+			path.append("&appid=" + WXConfig.APPID);
+			path.append("&secret=" + WXConfig.SECRET);
 			String resultArray = null;
 			Boolean isProxy = new Boolean(false);
 			resultArray = RequestUtil.getOrPostUrl(path.toString(), "GET", null,
