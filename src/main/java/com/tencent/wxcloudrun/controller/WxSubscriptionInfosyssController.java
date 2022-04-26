@@ -279,12 +279,15 @@ public class WxSubscriptionInfosyssController {
 					SystemMessage systemMessage1 = new SystemMessage();
 					systemMessageList.add(systemMessage1);
 				} else if (operateType.equals("reply")) {
+					logger.info("???111");
 					String keyword = null;
 					// if (businessMessageById != null) {
 					if (true) {
+						logger.info("???222");
 						// 用户输入内容
 						if (businessMessageContent.getString("replyType") != null
 								&& businessMessageContent.getString("replyType").equals("text")) {
+							logger.info("???333");
 							// 回复时机-回复语
 							keyword = businessMessageContent.getString("content");
 							// messageTypeParameter =
@@ -303,7 +306,9 @@ public class WxSubscriptionInfosyssController {
 							systemReplys.add(r1);
 							systemMessage1.setSystemReplys(systemReplys);
 							systemMessageList.add(systemMessage1);
+							logger.info("???444");
 							if (systemMessageList == null || systemMessageList.size() != 1) {
+								logger.info("???555");
 								// 回复内容不存在或结果不唯一，再次进行模糊查询
 								if (pageNum == null || pageNum.equals(""))// 页数
 									pageNum = 1;
@@ -323,8 +328,10 @@ public class WxSubscriptionInfosyssController {
 								}
 							}
 						}
+						logger.info("???666");
 						// 未找到匹配的回复语时，回复其他
 						if (systemMessageList == null || systemMessageList.isEmpty()) {
+							logger.info("???777");
 							// 回复时机-其他
 							messageTypeList.clear();
 							// messageTypeParameter =
@@ -344,6 +351,7 @@ public class WxSubscriptionInfosyssController {
 							systemMessage1.setSystemReplys(systemReplys);
 							systemMessageList.add(systemMessage1);
 						}
+						logger.info("???888");
 					}
 				}
 			}
