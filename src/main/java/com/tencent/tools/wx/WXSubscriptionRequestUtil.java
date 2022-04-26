@@ -7,18 +7,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 
 import com.tencent.tools.RequestProxyConfig;
 import com.tencent.tools.RequestUtil;
-import com.tencent.wxcloudrun.controller.CounterController;
 
 import net.sf.json.JSONObject;
 
 public class WXSubscriptionRequestUtil {
 	// TODO 临时存在的内容(由于这些变量在某时间范围内保持有效，所以需要建立缓存，此处用单例代替)
-	public static String accessToken;
+	public static String accessToken = "56_PfzwS4MilDNzLYznCGSy-tXYhkIFLEJl8CUDksqClI2ayAJXxd7F9RCA-i0iBeW7dYnpcskpAHJ9n7X4q97Zpsvq0Kk88k-jDcHva-Gc9MGRK08RB2312lKx-dTWogsb_1zaGsdvqWnY2OhPFYDcACAOHM";
 	private static String jsapiTicket;
 
 	/**
@@ -162,7 +160,7 @@ public class WXSubscriptionRequestUtil {
 	public static JSONObject customSendMessage(JSONObject messageObject, Logger logger) throws IOException {
 		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.SEND_MESSAGE_BY_CUSTOM_URL);
 		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
-		logger.info("customSendMessage path: {}",path);
+		logger.info("customSendMessage path: {}", path);
 		String result = null;
 		Boolean isProxy = new Boolean(false);
 		result = RequestUtil.getOrPostUrl(path.toString(), "POST", messageObject.toString(),
