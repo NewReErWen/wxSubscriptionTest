@@ -197,7 +197,7 @@ public class WxSubscriptionInfosyssController {
 						}
 						logger.info("/wx/receiveMessage post request, messageObject: {}", messageObject);
 						// 调用已封装的客服发送消息请求方法
-						WXSubscriptionRequestUtil.customSendMessage(messageObject);
+						WXSubscriptionRequestUtil.customSendMessage(messageObject,logger);
 					}
 				} else {
 					// 推荐问题列表

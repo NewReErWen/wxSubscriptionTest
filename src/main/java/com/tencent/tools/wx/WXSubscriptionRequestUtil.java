@@ -21,8 +21,6 @@ public class WXSubscriptionRequestUtil {
 	public static String accessToken;
 	private static String jsapiTicket;
 
-	private static Logger logger = LoggerFactory.getLogger(CounterController.class);
-
 	/**
 	 * 获取access_token
 	 * 
@@ -161,7 +159,7 @@ public class WXSubscriptionRequestUtil {
 	 * @return
 	 * @throws IOException
 	 */
-	public static JSONObject customSendMessage(JSONObject messageObject) throws IOException {
+	public static JSONObject customSendMessage(JSONObject messageObject, Logger logger) throws IOException {
 		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.SEND_MESSAGE_BY_CUSTOM_URL);
 		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
 		logger.info("customSendMessage path: {}",path);
