@@ -6,7 +6,6 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
 import org.springframework.http.HttpHeaders;
 
 import com.tencent.tools.RequestProxyConfig;
@@ -38,7 +37,6 @@ public class WXSubscriptionRequestUtil {
 			resultArray = RequestUtil.getOrPostUrl(path.toString(), "GET", null,
 					RequestProxyConfig.build(null, null, isProxy));
 			accessToken = JSONObject.fromObject(resultArray).getString("access_token");
-			System.out.println(accessToken);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -157,15 +155,13 @@ public class WXSubscriptionRequestUtil {
 	 * @return
 	 * @throws IOException
 	 */
-	public static JSONObject customSendMessage(JSONObject messageObject, Logger logger) throws IOException {
+	public static JSONObject customSendMessage(JSONObject messageObject) throws IOException {
 		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.SEND_MESSAGE_BY_CUSTOM_URL);
 		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
-		logger.info("customSendMessage path: {}", path);
 		String result = null;
 		Boolean isProxy = new Boolean(false);
 		result = RequestUtil.getOrPostUrl(path.toString(), "POST", messageObject.toString(),
 				RequestProxyConfig.build(null, null, isProxy));
-		logger.info("customSendMessage result: {}", result);
 		return JSONObject.fromObject(result);
 	}
 

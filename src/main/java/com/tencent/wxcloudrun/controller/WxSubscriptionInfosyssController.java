@@ -77,15 +77,12 @@ public class WxSubscriptionInfosyssController {
 
 	@PostMapping(value = "/wx/receiveMessage")
 	public void sendMessage(HttpServletRequest request, HttpServletResponse response) throws Exception {
-
-		logger.info("/wx/receiveMessage post request, begin");
 		request.setCharacterEncoding("UTF-8");
 		response.setCharacterEncoding("UTF-8");
 		PrintWriter out = response.getWriter();
 		try {
 			// 将request请求，传到Message工具类的转换方法中，返回接收到的Map对象
 			Map<String, String> recieveMap = XmlParseUtil.xmlToMap(request, request.getParameter("inputData"));
-			logger.info("/wx/receiveMessage post request, recieveMap: {}", recieveMap);
 			// 从集合中，获取XML各个节点的内容
 			// 微信开发者的微信号
 			String toUserName = recieveMap.get("ToUserName");
@@ -120,15 +117,12 @@ public class WxSubscriptionInfosyssController {
 			message.put("FromUserName", toUserName);
 			message.put("CreateTime", String.valueOf(new Date().getTime()));
 			message.put("MsgType", "text");
-			message.put("Content",
-					"您好，" + fromUserName + "\n我是：" + toUserName + "\n您发送的消息类型为：" + msgType + "\n您发送的时间为"
-							+ createTime + "\n我回复的时间为：" + message.get("CreateTime") + "\n您发送的内容是：" + content);
+			message.put("Content", "您好，" + fromUserName + "\n我是：" + toUserName + "\n您发送的消息类型为：" + msgType + "\n您发送的时间为"
+					+ createTime + "\n我回复的时间为：" + message.get("CreateTime") + "\n您发送的内容是：" + content);
 			// 转为XML字符串
 			String str = XmlParseUtil.mapToXml(message, true);
-			logger.info(str);
 			out.print("");
 			if (msgType.equals("text")) {// 判断消息类型是否是文本消息(text)，除text外，还有其他消息类型（例如图片、语音等）
-				logger.info("/wx/receiveMessage post request, 是文本");
 				businessMessageContent.put("replyType", "text");
 				businessMessageContent.put("content", content);
 				systemMessageList = this.replyContent(businessMessageContent, "reply", 1, 5);
@@ -143,25 +137,19 @@ public class WxSubscriptionInfosyssController {
 					// 取消关注x
 				}
 			}
-			logger.info("/wx/receiveMessage post request, systemMessageList: {}", systemMessageList);
 			if (systemMessageList != null && !systemMessageList.isEmpty()) {
-				logger.info("000");
 				if (systemMessageList.size() == 1) {
 					// 匹配到的问题作为回复
 					SystemMessage systemMessage = systemMessageList.get(0);
-					logger.info("111");
 					for (SystemReply systemReply : systemMessage.getSystemReplys()) {
-						logger.info("222");
 						JSONObject messageObject = new JSONObject();
 						JSONObject data = new JSONObject();
 						// 拼装json对象
 						messageObject.put("touser", fromUserName);
 						if (systemReply.getReplyType().equals("text")) {
-							logger.info("333");
 							messageObject.put("msgtype", "text");
 							data.put("content", systemReply.getContent());
 							messageObject.put("text", data);
-							logger.info("444");
 						} else if (systemReply.getReplyType().equals("image")) {
 							// TODO 临时素材添加并获取
 							String media_id = "";
@@ -200,9 +188,8 @@ public class WxSubscriptionInfosyssController {
 							newsObject.put("articles", articles);
 							messageObject.put("news", newsObject);
 						}
-						logger.info("/wx/receiveMessage post request, messageObject: {}", messageObject);
 						// 调用已封装的客服发送消息请求方法
-						WXSubscriptionRequestUtil.customSendMessage(messageObject,logger);
+						WXSubscriptionRequestUtil.customSendMessage(messageObject);
 					}
 				} else {
 					// 推荐问题列表
@@ -266,6 +253,12 @@ public class WxSubscriptionInfosyssController {
 					// .findSystemMessageListByStateListMessageTypeListOrganizationContentLikeContent(stateList,
 					// messageTypeList, organization, null, null);
 					SystemMessage systemMessage1 = new SystemMessage();
+					Set<SystemReply> systemReplys = new HashSet<SystemReply>();
+					SystemReply r1 = new SystemReply();
+					r1.setContent("谢谢关注");
+					r1.setReplyType("text");
+					systemReplys.add(r1);
+					systemMessage1.setSystemReplys(systemReplys);
 					systemMessageList.add(systemMessage1);
 				} else if (operateType.equals("unifiedReply")) {
 					// 回复时机-欢迎语
@@ -279,15 +272,12 @@ public class WxSubscriptionInfosyssController {
 					SystemMessage systemMessage1 = new SystemMessage();
 					systemMessageList.add(systemMessage1);
 				} else if (operateType.equals("reply")) {
-					logger.info("???111");
 					String keyword = null;
 					// if (businessMessageById != null) {
 					if (true) {
-						logger.info("???222");
 						// 用户输入内容
 						if (businessMessageContent.getString("replyType") != null
 								&& businessMessageContent.getString("replyType").equals("text")) {
-							logger.info("???333");
 							// 回复时机-回复语
 							keyword = businessMessageContent.getString("content");
 							// messageTypeParameter =
@@ -311,9 +301,7 @@ public class WxSubscriptionInfosyssController {
 							systemReplys.add(r2);
 							systemMessage1.setSystemReplys(systemReplys);
 							systemMessageList.add(systemMessage1);
-							logger.info("???444");
 							if (systemMessageList == null || systemMessageList.size() != 1) {
-								logger.info("???555");
 								// 回复内容不存在或结果不唯一，再次进行模糊查询
 								if (pageNum == null || pageNum.equals(""))// 页数
 									pageNum = 1;
@@ -333,10 +321,8 @@ public class WxSubscriptionInfosyssController {
 								}
 							}
 						}
-						logger.info("???666");
 						// 未找到匹配的回复语时，回复其他
 						if (systemMessageList == null || systemMessageList.isEmpty()) {
-							logger.info("???777");
 							// 回复时机-其他
 							messageTypeList.clear();
 							// messageTypeParameter =
@@ -356,7 +342,6 @@ public class WxSubscriptionInfosyssController {
 							systemMessage1.setSystemReplys(systemReplys);
 							systemMessageList.add(systemMessage1);
 						}
-						logger.info("???888");
 					}
 				}
 			}
