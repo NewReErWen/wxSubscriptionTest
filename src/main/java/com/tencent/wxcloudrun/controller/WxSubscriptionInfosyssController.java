@@ -2,6 +2,7 @@ package com.tencent.wxcloudrun.controller;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -115,6 +116,9 @@ public class WxSubscriptionInfosyssController {
 			JSONObject businessMessageContent = new JSONObject();
 			// 不回复，回复统一使用客服接口
 			Map<String, Object> message = new HashMap<String, Object>();
+			message.put("ToUserName", fromUserName);
+			message.put("FromUserName", toUserName);
+			message.put("CreateTime", String.valueOf(new Date().getTime()));
 			message.put("MsgType", "text");
 			message.put("Content",
 					"您好，" + fromUserName + "\n我是：" + toUserName + "\n您发送的消息类型为：" + msgType + "\n您发送的时间为"
