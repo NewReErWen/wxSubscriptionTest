@@ -195,6 +195,7 @@ public class WxSubscriptionInfosyssController {
 							newsObject.put("articles", articles);
 							messageObject.put("news", newsObject);
 						}
+						logger.info("/wx/receiveMessage post request, messageObject: {}", messageObject);
 						// 调用已封装的客服发送消息请求方法
 						WXSubscriptionRequestUtil.customSendMessage(messageObject);
 					}
