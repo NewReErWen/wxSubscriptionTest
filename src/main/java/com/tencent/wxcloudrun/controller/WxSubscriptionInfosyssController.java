@@ -234,6 +234,15 @@ public class WxSubscriptionInfosyssController {
 		return true;
 	}
 
+	/**
+	 * 获取问题列表
+	 * 
+	 * @param businessMessageContent
+	 * @param operateType
+	 * @param pageNum
+	 * @param pageRowNum
+	 * @return
+	 */
 	public List<SystemMessage> replyContent(JSONObject businessMessageContent, String operateType, Integer pageNum,
 			Integer pageRowNum) {
 		// 系统问题列表

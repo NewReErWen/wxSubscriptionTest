@@ -46,13 +46,33 @@ public class WXConstants {
 	 */
 	public static final String SEND_MESSAGE_BY_TEMPLATE_URL = "/cgi-bin/message/template/send";
 	/**
+	 * 上传临时素材
+	 */
+	public static final String UPLOAD_MEDIA_URL = "/cgi-bin/media/upload";
+	/**
 	 * 获取临时素材
 	 */
 	public static final String GET_MEDIA_URL = "/cgi-bin/media/get";
 	/**
+	 * 上传永久素材
+	 */
+	public static final String ADD_MATERIAL_URL = "/cgi-bin/material/add_material";
+	/**
+	 * 删除永久素材
+	 */
+	public static final String DEL_MATERIAL_URL = "/cgi-bin/material/del_material";
+	/**
+	 * 获取永久素材
+	 */
+	public static final String GET_MATERIAL_URL = "/cgi-bin/material/get_material";
+	/**
 	 * 获取永久素材列表
 	 */
 	public static final String BATCHGET_MATERIAL_URL = "/cgi-bin/material/batchget_material";
+	/**
+	 * 获取永久素材总数
+	 */
+	public static final String GET_MATERIAL_COUNT_URL = "/cgi-bin/material/get_materialcount";
 	/**
 	 * access_token发送请求所需常量grant_type
 	 */

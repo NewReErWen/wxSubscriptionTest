@@ -1,6 +1,9 @@
 package com.tencent.tools;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -172,7 +175,7 @@ public class RequestUtil {
 	public static String transToPostData(String jsonString) throws UnsupportedEncodingException {
 		return transToPostData(JSONObject.fromObject(jsonString));
 	}
-	
+
 	/**
 	 * map转换为post请求的参数字符串(参数值进行了encode编码)
 	 * 
@@ -208,7 +211,6 @@ public class RequestUtil {
 
 		return map;
 	}
-	
 
 	/**
 	 * 解析应答字符串，生成应答要素
@@ -305,5 +307,109 @@ public class RequestUtil {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * 五个参数： <br/>
+	 * 1、url: 指定表单提交的url地址<br/>
+	 * 2、map: 将上传控件之外的其他控件的数据信息存入map对象 <br/>
+	 * 3、name: 文件上传时对应的name值 <br/>
+	 * 4、fileName：指定要上传到服务器的文件名称<br/>
+	 * 5、body_data：文件字节数组<br/>
+	 * 6、charset：字符集，通常设置为"utf-8" <br/>
+	 * 7、proxyConfig 代理相关
+	 */
+	public static String doPostSubmitBody(String url, Map<String, String> map, String name, String fileName,
+			byte[] body_data, String charset, RequestProxyConfig proxyConfig) {
+		// 设置三个常用字符串常量：换行、前缀、分界线（NEWLINE、PREFIX、BOUNDARY）；
+		final String NEWLINE = "\r\n";
+		final String PREFIX = "--";
+		final String BOUNDARY = "#";
+		HttpURLConnection httpConn = null;
+		BufferedInputStream bis = null;
+		DataOutputStream dos = null;
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			// 实例化URL对象。调用URL有参构造方法，参数是一个url地址；
+			URL urlObj = new URL(url);
+			// 调用URL对象的openConnection()方法，创建HttpURLConnection对象；
+			if (proxyConfig != null && proxyConfig.isProxy()) {
+				// 创建代理服务器
+				InetSocketAddress addr = new InetSocketAddress(proxyConfig.getHost(), proxyConfig.getPort());
+				Proxy proxy = new Proxy(Proxy.Type.HTTP, addr); // http 代理
+				httpConn = (HttpURLConnection) urlObj.openConnection(proxy);
+			} else
+				// 网络请求
+				httpConn = (HttpURLConnection) urlObj.openConnection();
+			// 调用HttpURLConnection对象setDoOutput(true)、setDoInput(true)、setRequestMethod("POST")；
+			httpConn.setDoInput(true);
+			httpConn.setDoOutput(true);
+			httpConn.setRequestMethod("POST");
+			// 设置Http请求头信息；（Accept、Connection、Accept-Encoding、Cache-Control、Content-Type、User-Agent）
+			httpConn.setUseCaches(false);
+			httpConn.setRequestProperty("Connection", "Keep-Alive");
+			httpConn.setRequestProperty("Accept", "*/*");
+			httpConn.setRequestProperty("Accept-Encoding", "gzip, deflate");
+			httpConn.setRequestProperty("Cache-Control", "no-cache");
+			httpConn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+			httpConn.setRequestProperty("User-Agent",
+					"Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30)");
+			// 调用HttpURLConnection对象的connect()方法，建立与服务器的真实连接；
+			httpConn.connect();
+
+			// 调用HttpURLConnection对象的getOutputStream()方法构建输出流对象；
+			dos = new DataOutputStream(httpConn.getOutputStream());
+			// 获取表单中上传控件之外的控件数据，写入到输出流对象（根据HttpWatch提示的流信息拼凑字符串）；
+			if (map != null && !map.isEmpty()) {
+				for (Map.Entry<String, String> entry : map.entrySet()) {
+					String key = entry.getKey();
+					String value = map.get(key);
+					dos.writeBytes(PREFIX + BOUNDARY + NEWLINE);
+					dos.writeBytes("Content-Disposition: form-data; " + "name=\"" + key + "\"" + NEWLINE);
+					dos.writeBytes(NEWLINE);
+					dos.writeBytes(URLEncoder.encode(value.toString(), charset));
+					// 或者写成：dos.write(value.toString().getBytes(charset));
+					dos.writeBytes(NEWLINE);
+				}
+			}
+
+			// 获取表单中上传控件的数据，写入到输出流对象（根据HttpWatch提示的流信息拼凑字符串）；
+			if (body_data != null && body_data.length > 0) {
+				dos.writeBytes(PREFIX + BOUNDARY + NEWLINE);
+				dos.writeBytes("Content-Disposition: form-data; " + "name=\"" + name + "\"" + "; filename=\"" + fileName
+						+ "\"" + NEWLINE);
+				dos.writeBytes(NEWLINE);
+				dos.write(body_data);
+				dos.writeBytes(NEWLINE);
+			}
+			dos.writeBytes(PREFIX + BOUNDARY + PREFIX + NEWLINE);
+			dos.flush();
+
+			// 调用HttpURLConnection对象的getInputStream()方法构建输入流对象；
+			byte[] buffer = new byte[8 * 1024];
+			int c = 0;
+			// 调用HttpURLConnection对象的getResponseCode()获取客户端与服务器端的连接状态码。如果是200，则执行以下操作，否则返回null；
+			if (httpConn.getResponseCode() == 200) {
+				bis = new BufferedInputStream(httpConn.getInputStream());
+				while ((c = bis.read(buffer)) != -1) {
+					baos.write(buffer, 0, c);
+					baos.flush();
+				}
+			}
+			// 将输入流转成字节数组，返回给客户端。
+			return new String(baos.toByteArray(), charset);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				dos.close();
+				bis.close();
+				baos.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
+
 	}
 }

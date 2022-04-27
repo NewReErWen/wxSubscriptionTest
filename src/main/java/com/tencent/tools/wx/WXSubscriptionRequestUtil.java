@@ -1,12 +1,13 @@
 package com.tencent.tools.wx;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.springframework.http.HttpHeaders;
 
 import com.tencent.tools.RequestProxyConfig;
 import com.tencent.tools.RequestUtil;
@@ -15,7 +16,7 @@ import net.sf.json.JSONObject;
 
 public class WXSubscriptionRequestUtil {
 	// TODO 临时存在的内容(由于这些变量在某时间范围内保持有效，所以需要建立缓存，此处用单例代替)
-	public static String accessToken = "56_PfzwS4MilDNzLYznCGSy-tXYhkIFLEJl8CUDksqClI2ayAJXxd7F9RCA-i0iBeW7dYnpcskpAHJ9n7X4q97Zpsvq0Kk88k-jDcHva-Gc9MGRK08RB2312lKx-dTWogsb_1zaGsdvqWnY2OhPFYDcACAOHM";
+	public static String accessToken;
 	private static String jsapiTicket;
 
 	/**
@@ -80,10 +81,8 @@ public class WXSubscriptionRequestUtil {
 			StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.CREATE_QR_SCENE_URL);
 			path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
 			Boolean isProxy = new Boolean(false);
-			System.out.println(param);
 			String result = RequestUtil.getOrPostUrl(path.toString(), "POST", param.toString(),
 					RequestProxyConfig.build(null, null, isProxy));
-			System.out.println(result);
 			ticket = JSONObject.fromObject(result).getString("ticket");
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -185,21 +184,160 @@ public class WXSubscriptionRequestUtil {
 	}
 
 	/**
+	 * 上传临时素材，返回mediaId
+	 * 
+	 * @param fileName
+	 *            文件名
+	 * @param inputStream
+	 *            上传文件的输入流
+	 * @param type
+	 *            媒体文件类型，分别有图片(image)、语音(voice)、视频(video)和缩略图(thumb)
+	 * @return
+	 * @throws IOException
+	 */
+	public static String uploadTempMedia(String fileName, InputStream inputStream, String type) throws IOException {
+		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.UPLOAD_MEDIA_URL);
+		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
+		path.append("&type=" + type);
+		// 获取到要上传的文件的输入流信息，通过ByteArrayOutputStream流转成byte[]
+		BufferedInputStream bis = null;
+		byte[] body_data = null;
+		bis = new BufferedInputStream(inputStream);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		int c = 0;
+		byte[] buffer = new byte[8 * 1024];
+		try {
+			while ((c = bis.read(buffer)) != -1) {
+				baos.write(buffer, 0, c);
+				baos.flush();
+			}
+			body_data = baos.toByteArray();
+			baos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		Boolean isProxy = new Boolean(false);
+		String result = RequestUtil.doPostSubmitBody(path.toString(), null, "media", fileName, body_data, "utf-8",
+				RequestProxyConfig.build(null, null, isProxy));
+		String mediaId = null;
+		try {
+			JSONObject data = JSONObject.fromObject(result);
+			mediaId = data.getString("media_id");
+		} catch (Exception e) {
+		}
+		return mediaId;
+	}
+
+	/**
 	 * 根据素材id获取临时素材
+	 * 
+	 * @author 闫嘉玮
+	 * @param mediaId
+	 * @return byte[]文件字节数组
+	 * @throws IOException
+	 */
+	public static byte[] getMedia(String mediaId) throws IOException {
+		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.GET_MEDIA_URL);
+		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
+		path.append("&media_id=" + mediaId);
+		Map<String, Object> data = new HashMap<String, Object>();
+		Object[] result = RequestUtil.getOrPostFileBytes(path.toString(), false, data,
+				RequestProxyConfig.build(null, null, false));
+		if (result != null && result.length > 0)
+			return (byte[]) result[0];
+		else
+			return null;
+	}
+
+	/**
+	 * 上传永久素材，返回[mediaId, url]，第二个参数仅新增图片素材时会返回该字段
+	 * 
+	 * @param fileName
+	 *            文件名
+	 * @param inputStream
+	 *            上传文件的输入流
+	 * @param type
+	 *            媒体文件类型，分别有图片（image）、语音（voice）、视频（video）和缩略图（thumb）
+	 * @return
+	 * @throws IOException
+	 */
+	public static String[] addMedia(String fileName, InputStream inputStream, String type) throws IOException {
+		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.ADD_MATERIAL_URL);
+		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
+		path.append("&type=" + type);
+		// 获取到要上传的文件的输入流信息，通过ByteArrayOutputStream流转成byte[]
+		BufferedInputStream bis = null;
+		byte[] body_data = null;
+		bis = new BufferedInputStream(inputStream);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		int c = 0;
+		byte[] buffer = new byte[8 * 1024];
+		try {
+			while ((c = bis.read(buffer)) != -1) {
+				baos.write(buffer, 0, c);
+				baos.flush();
+			}
+			body_data = baos.toByteArray();
+			baos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		Boolean isProxy = new Boolean(false);
+		String result = RequestUtil.doPostSubmitBody(path.toString(), null, "media", fileName, body_data, "utf-8",
+				RequestProxyConfig.build(null, null, isProxy));
+		String mediaId = null;
+		String url = null;
+		try {
+			JSONObject data = JSONObject.fromObject(result);
+			mediaId = data.getString("media_id");
+			url = data.getString("url");
+		} catch (Exception e) {
+		}
+		return new String[] { mediaId, url };
+	}
+
+	/**
+	 * 删除永久素材
+	 * 
+	 * @param mediaId
+	 * @return
+	 * @throws IOException
+	 */
+	public static Boolean delMaterial(String mediaId) throws IOException {
+		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.DEL_MATERIAL_URL);
+		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
+		JSONObject paramObject = new JSONObject();
+		paramObject.put("media_id", mediaId);
+		String result = RequestUtil.getOrPostUrl(path.toString(), "POST", paramObject.toString(),
+				RequestProxyConfig.build(null, null, false));
+		try {
+			JSONObject data = JSONObject.fromObject(result);
+			if (data.getInt("errcode") == 0)
+				return true;
+		} catch (Exception e) {
+		}
+		return false;
+	}
+
+	/**
+	 * 根据素材id获取永久素材
 	 * 
 	 * @author 闫嘉玮
 	 * @param mediaId
 	 * @return [byte[]文件字节数组, 文件类型(image/jpeg、audio/amr、video/mpeg4等)]
 	 * @throws IOException
 	 */
-	public static Object[] getMedia(String mediaId) throws IOException {
-		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.GET_MEDIA_URL);
+	public static byte[] getMaterial(String mediaId) throws IOException {
+		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.GET_MATERIAL_URL);
 		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
-		path.append("&media_id=" + mediaId);
 		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("media_id", mediaId);
 		Object[] result = RequestUtil.getOrPostFileBytes(path.toString(), true, data,
 				RequestProxyConfig.build(null, null, false));
-		return new Object[] { result[0], ((HttpHeaders) result[1]).getContentType().toString() };
+		if (result != null && result.length > 0)
+			return (byte[]) result[0];
+		else
+			return null;
 	}
 
 	/**
@@ -228,13 +366,30 @@ public class WXSubscriptionRequestUtil {
 	 * 
 	 * @author 闫嘉玮
 	 * @param paramObject
-	 * @return
+	 *            {type: '', offset: '', count: ''}
+	 * @return {item_count: 当前数量, total_count: 素材总数, item: [{update_time, name,
+	 *         media_id, url, tags:[]}]}
 	 * @throws IOException
 	 */
 	public static JSONObject batchgetMaterial(JSONObject paramObject) throws IOException {
 		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.BATCHGET_MATERIAL_URL);
 		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
 		String result = RequestUtil.getOrPostUrl(path.toString(), "POST", paramObject.toString(),
+				RequestProxyConfig.build(null, null, false));
+		return JSONObject.fromObject(result);
+	}
+
+	/**
+	 * 获取永久素材数量，返回:
+	 * {"voice_count":音乐数,"video_count":视频数,"image_count":图片数,"news_count":图文数}
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public static JSONObject getMaterialCount() throws IOException {
+		StringBuffer path = new StringBuffer(WXConstants.DOMAIN_API + WXConstants.GET_MATERIAL_COUNT_URL);
+		path.append("?access_token=" + WXSubscriptionRequestUtil.getAccessToken());
+		String result = RequestUtil.getOrPostUrl(path.toString(), "GET", null,
 				RequestProxyConfig.build(null, null, false));
 		return JSONObject.fromObject(result);
 	}

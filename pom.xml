@@ -72,7 +72,17 @@
 			<artifactId>dom4j</artifactId>
 			<version>2.0.0</version>
 		</dependency>
-
+		<!-- 修改后立即生效,热部署-begin -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>springloaded</artifactId>
+			<version>1.2.8.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+		</dependency>
+		<!-- 修改后立即生效,热部署-end -->
 	</dependencies>
 
 	<build>
